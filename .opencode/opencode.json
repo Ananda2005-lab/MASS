@@ -1,0 +1,50 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "Master Project Specification — AI Agent Platform.md"
+  ],
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp"],
+      "enabled": true,
+      "timeout": 30000,
+      "environment": {
+        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+      }
+    },
+    "graphify": {
+      "type": "local",
+      "command": ["npx", "-y", "graphify-mcp-tools", "mcp", "--graph", "./graphify-out"],
+      "enabled": true,
+      "timeout": 30000
+    },
+    "code-intelligence": {
+      "type": "local",
+      "command": ["npx", "-y", "language-server-mcp"],
+      "enabled": true,
+      "timeout": 30000
+    }
+  },
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "ls*": "allow",
+      "cat *": "allow",
+      "npm run *": "ask",
+      "npm install*": "ask",
+      "pytest*": "ask",
+      "rm -rf *": "deny",
+      "rm *": "deny",
+      "git push*": "ask",
+      "git reset*": "ask"
+    }
+  },
+  "plugin": [
+    "./.opencode/plugin/project-context.js"
+  ]
+}
