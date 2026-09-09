@@ -10,6 +10,8 @@ export type ModeId = "nova" | "forge";
 interface ModeCardProps {
   mode: ModeId;
   onSelect: (mode: ModeId) => void;
+  /** Native fallback — JS/hydration dead ho to bhi navigation chale (anchor) */
+  href: string;
 }
 
 const CONFIG = {
@@ -41,7 +43,7 @@ const CONFIG = {
   },
 } as const;
 
-export default function ModeCard({ mode, onSelect }: ModeCardProps) {
+export default function ModeCard({ mode, onSelect, href }: ModeCardProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const c = CONFIG[mode];
 
@@ -115,10 +117,15 @@ export default function ModeCard({ mode, onSelect }: ModeCardProps) {
   const Icon = c.Icon;
 
   return (
-    <button
-      ref={ref}
-      type="button"
-      onClick={() => onSelect(mode)}
+    <a
+      ref={ref as unknown as React.Ref<HTMLAnchorElement>}
+      href={href}
+      onClick={(e) => {
+        // JS alive hai -> animated exit transition use karo, native nav roko.
+        // React hydrate nahi hua -> ye handler chalega hi nahi -> anchor natively navigate karega.
+        e.preventDefault();
+        onSelect(mode);
+      }}
       className={`glass group relative flex w-[320px] flex-col gap-3 overflow-hidden p-7 text-left transition-[border-color,box-shadow] duration-500 ease-out will-change-transform ${c.hoverBorder} ${c.hoverShadow}`}
     >
       {/* corner glow */}
@@ -150,6 +157,6 @@ export default function ModeCard({ mode, onSelect }: ModeCardProps) {
           Enter <span aria-hidden>→</span>
         </span>
       </div>
-    </button>
+    </a>
   );
 }

@@ -63,13 +63,13 @@ export default function EntryPage() {
           <BrandMark className="h-8 w-8 animate-float" />
           <span className="animate-fade-up text-sm font-semibold tracking-[0.22em] text-ink-mid" style={{ animationDelay: "40ms" }}>RAG-V2</span>
         </div>
-        <button
-          onClick={() => router.push("/workspace?panel=settings")}
+        <a
+          href="/workspace?panel=settings"
           className="animate-fade-up glass-soft px-3.5 py-1.5 text-xs text-ink-mid transition hover:text-ink-hi"
           style={{ animationDelay: "80ms" }}
         >
           ⚙ Settings
-        </button>
+        </a>
       </header>
 
       {/* hero */}
@@ -94,10 +94,10 @@ export default function EntryPage() {
       {/* mode cards */}
       <section className="flex flex-1 flex-wrap items-center justify-center gap-8 px-6 pb-20 pt-6">
         <div className="animate-fade-up" style={{ animationDelay: "240ms" }}>
-          <ModeCard mode="nova" onSelect={select} />
+          <ModeCard mode="nova" onSelect={select} href={ROUTES.nova} />
         </div>
         <div className="animate-fade-up" style={{ animationDelay: "320ms" }}>
-          <ModeCard mode="forge" onSelect={select} />
+          <ModeCard mode="forge" onSelect={select} href={ROUTES.forge} />
         </div>
       </section>
 
