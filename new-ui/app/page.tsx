@@ -63,7 +63,11 @@ export default function EntryPage() {
           <BrandMark className="h-8 w-8 animate-float" />
           <span className="animate-fade-up text-sm font-semibold tracking-[0.22em] text-ink-mid" style={{ animationDelay: "40ms" }}>RAG-V2</span>
         </div>
-        <button className="animate-fade-up glass-soft px-3.5 py-1.5 text-xs text-ink-mid transition hover:text-ink-hi" style={{ animationDelay: "80ms" }}>
+        <button
+          onClick={() => router.push("/workspace?panel=settings")}
+          className="animate-fade-up glass-soft px-3.5 py-1.5 text-xs text-ink-mid transition hover:text-ink-hi"
+          style={{ animationDelay: "80ms" }}
+        >
           ⚙ Settings
         </button>
       </header>
@@ -82,8 +86,8 @@ export default function EntryPage() {
           </span>
         </h1>
         <p className="animate-fade-up max-w-md text-sm leading-relaxed text-ink-mid" style={{ animationDelay: "160ms" }}>
-          Do duniyaayein, ek intelligence — <span className="text-ink-hi">Nova</span> se baat karo,{" "}
-          <span className="text-ink-hi">Forge</span> me kaam karwao.
+          Two worlds, one intelligence — talk to <span className="text-ink-hi">Nova</span>,{" "}
+          get work done in <span className="text-ink-hi">Forge</span>.
         </p>
       </section>
 

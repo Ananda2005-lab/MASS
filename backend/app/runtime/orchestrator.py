@@ -138,5 +138,5 @@ def _aggregate(task: Task):
         step_id=last.id if last else "",
         status=ResultStatus.SUCCESS,
         artifacts=artifacts,
-        summary=summary[:1000],
+        summary=summary[:20000],
     )

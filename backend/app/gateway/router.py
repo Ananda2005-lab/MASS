@@ -82,19 +82,33 @@ class Router:
         s_cap = 1.0 if cand.model.tier == "standard" else 0.8
         # cost: lower cost -> higher
         s_cost = 1.0 / (1.0 + cand.model.cost_unit)
+        h = self.state.health_for(cand.provider.id, cand.model.id, cand.profile.id)
         # latency: lower avg latency -> higher
-        lat = self.state.health_for(cand.provider.id, cand.model.id, cand.profile.id).avg_latency
-        s_lat = 1.0 / (1.0 + lat / 1000.0)
+        s_lat = 1.0 / (1.0 + h.avg_latency / 1000.0)
         # reliability: success rate
-        s_rel = self.state.health_for(cand.provider.id, cand.model.id, cand.profile.id).success_rate
+        s_rel = h.success_rate
         # constraint: user model preference
         s_con = 1.0 if (request.model and request.model == cand.model.id) else 0.5
+        # quality-engineering: task-type → model-class preference boost
+        s_pref = 0.0
+        if request.preferred_contains:
+            hay = (cand.model.id + " " + cand.model.name).lower()
+            if any(p in hay for p in request.preferred_contains):
+                s_pref = 0.35
+        # key rotation: more remaining daily quota and fewer session calls wins,
+        # so N keys of one provider share load instead of hammering key-1
+        q = self.state.quota_for(cand.profile.id, cand.profile.quota.limit)
+        s_quota = 1.0 - min(1.0, q.used / q.limit) if q.limit not in (0.0, float("inf")) else 1.0
+        s_load = 1.0 / (1.0 + h.success_count + h.failure_count)
         raw = (
             w["capability"] * s_cap
             + w["cost"] * s_cost
             + w["latency"] * s_lat
             + w["reliability"] * s_rel
             + w["constraint"] * s_con
+            + s_pref
+            + 0.15 * s_quota
+            + 0.10 * s_load
         )
         return raw
 

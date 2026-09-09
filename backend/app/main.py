@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import instruction, tasks
+from app.api import approvals, instruction, system, tasks
 from app.log import get_logger, configure_logging
 from app.realtime.websocket import router as realtime_router
 from app.runtime.runtime import build_runtime
@@ -37,6 +37,8 @@ def create_app() -> FastAPI:
     )
     app.include_router(instruction.router)
     app.include_router(tasks.router)
+    app.include_router(system.router)
+    app.include_router(approvals.router)
     app.include_router(realtime_router)
 
     @app.get("/health")

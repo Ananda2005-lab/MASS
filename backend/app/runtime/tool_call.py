@@ -28,6 +28,25 @@ from app.core.tool import (
 from app.log import get_logger
 from app.runtime.sub_agents import CONTRACTS
 
+
+def _tool_result_payload(tool_id: str, result: ToolResult) -> dict:
+    payload = {
+        "tool_id": tool_id,
+        "status": result.status.value,
+        "error_code": (result.error or {}).get("code") if result.error else None,
+        "invocation_id": result.invocation_id,
+    }
+    # research evidence: search hits ride along so the UI Sources panel can show them
+    if tool_id == "search.query" and result.status == ToolResultStatus.SUCCESS:
+        out = result.output if isinstance(result.output, dict) else {}
+        hits = (out.get("results") or [])[:5]
+        payload["sources"] = [
+            {"url": str(h.get("url") or ""), "title": str(h.get("title") or "")}
+            for h in hits
+            if isinstance(h, dict)
+        ]
+    return payload
+
 logger = get_logger("runtime.tool_call")
 
 
@@ -143,12 +162,7 @@ class ToolCallDispatcher:
             )
         await self._emit(
             EventType.TOOL_RESULT, task_id, step_id,
-            {
-                "tool_id": tool_id,
-                "status": result.status.value,
-                "error_code": (result.error or {}).get("code") if result.error else None,
-                "invocation_id": invocation.id,
-            },
+            _tool_result_payload(tool_id, result),
             EventActor.TOOL,
         )
         return result

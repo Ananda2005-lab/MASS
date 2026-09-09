@@ -32,14 +32,20 @@ async def exec_command(invocation: ToolInvocation, tool: Tool) -> ToolResult:
             error={"code": "sandbox_disabled", "message": "sandbox disabled"},
         )
 
-    os.makedirs(SANDBOX_DIR, exist_ok=True)
+    # sandbox_scope=full (opt-in): commands run from the user home — whole-machine
+    # reach. Default stays locked to ./sandbox.
+    if getattr(settings, "sandbox_scope", "sandbox") == "full":
+        cwd = os.path.expanduser("~")
+    else:
+        os.makedirs(SANDBOX_DIR, exist_ok=True)
+        cwd = SANDBOX_DIR
     timeout = (invocation.timeout_ms / 1000.0) if invocation.timeout_ms else 60.0
 
     try:
         proc = subprocess.run(
             cmd,
             shell=True,
-            cwd=SANDBOX_DIR,
+            cwd=cwd,
             capture_output=True,
             text=True,
             timeout=timeout,

@@ -18,13 +18,34 @@ class PermissionChecker:
 
     async def check(self, permissions: list[Permission], invocation: ToolInvocation) -> bool:
         """Return True if invocation may proceed. Destructive tools need a ticket."""
-        needs_ticket = any(p.name in ("fs:write", "exec:sandbox", "exec:terminal", "network") for p in permissions)
-        if not needs_ticket:
+        needed = [p.name for p in permissions if p.name in ("fs:write", "exec:sandbox", "exec:terminal", "network")]
+        if not needed:
             return True
         if invocation.permission_ticket and invocation.permission_ticket in self._approved:
             return True
-        logger.warning("permission_denied", tool=invocation.tool_id, ticket=invocation.permission_ticket)
-        return False
+        # safety_mode=auto: sandbox-scoped tools and network may run for runtime
+        # callers without a ticket (Auto = autonomous agent; Ask = tickets).
+        try:
+            from app.config import settings
+
+            if settings.safety_mode == "auto" and invocation.caller:
+                if set(needed) <= {"fs:write", "exec:sandbox", "exec:terminal", "network"}:
+                    return True
+        except Exception:  # noqa: BLE001 - config must never break the security layer
+            pass
+        # ASK mode: don't silently deny — ask the user via the approval flow.
+        # The tool call blocks until the decision (or timeout -> denied).
+        try:
+            from app.security.approvals import approvals
+
+            return await approvals.request(
+                invocation.tool_id,
+                dict(invocation.params or {}),
+                invocation.caller or "",
+            )
+        except Exception:  # noqa: BLE001 - approval layer must never crash security
+            logger.warning("permission_denied", tool=invocation.tool_id, ticket=invocation.permission_ticket)
+            return False
 
     def approve(self, ticket: str) -> None:
         self._approved.add(ticket)

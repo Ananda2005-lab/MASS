@@ -7,6 +7,7 @@ callback (plugged by Security in T16); the Fake adapter ignores credentials.
 from __future__ import annotations
 
 import asyncio
+import time
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Optional
 
@@ -90,3 +91,62 @@ class LLMGateway:
             f"All LLM candidates failed: {last_error}",
             retryable=False,
         )
+
+    async def complete_stream(self, request: LLMRequest):
+        """Token-level streaming with failover BEFORE the first chunk only.
+
+        Yields text chunks; once a stream starts it is committed. Non-streaming
+        adapters degrade to a single full-text yield.
+        """
+        if request.model is None and self.default_model is not None:
+            request.model = self.default_model
+        ranked = self.router.ranked(request)
+        if not ranked:
+            raise QuotaExhaustedError(request.credential_profile or "none")
+
+        last_error: Optional[Exception] = None
+        for cand in ranked[: max(self.cfg.max_retries, 1)]:
+            provider, model, profile = cand.provider, cand.model, cand.profile
+            adapter = self.registry.get_adapter(provider.id)
+            if adapter is None:
+                continue
+            started = time.monotonic()
+            acc: list[str] = []
+            try:
+                creds = await self.credential_resolver(profile.key_ref)
+                if hasattr(adapter, "complete_stream"):
+                    gen = adapter.complete_stream(request, creds)
+                    first = await anext(gen, None)
+                    if first is None:
+                        raise ProviderError("empty stream")
+                    acc.append(first)
+                    yield first
+                    async for chunk in gen:
+                        acc.append(chunk)
+                        yield chunk
+                else:
+                    resp = await adapter.complete(request, creds)
+                    if resp.status != "success":
+                        raise ProviderError("bad response")
+                    text = str(resp.content)
+                    acc.append(text)
+                    yield text
+            except Exception as e:  # noqa: BLE001 - candidate failed before/during stream
+                if acc:
+                    raise  # mid-stream: already committed to this candidate
+                last_error = e
+                self.state.health_for(provider.id, model.id, profile.id).record(0, ok=False)
+                self.state.cooldown_for(provider.id, model.id, profile.id).trigger(
+                    self.cfg.cooldown_seconds, str(e)
+                )
+                logger.warning("provider_failed", provider=provider.id, error=str(e))
+                continue
+
+            # success bookkeeping
+            self.state.health_for(provider.id, model.id, profile.id).record(
+                int((time.monotonic() - started) * 1000), True
+            )
+            q = self.state.quota_for(profile.id, profile.quota.limit)
+            q.consume(max(0.1, (sum(len(c) for c in acc) // 4) * 0.001))
+            return
+        raise ProviderError(f"All LLM candidates failed: {last_error}", retryable=False)

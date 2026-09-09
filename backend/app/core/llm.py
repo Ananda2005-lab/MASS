@@ -44,6 +44,7 @@ class LLMRequest(BaseModel):
     messages: list[Message] = Field(default_factory=list)
     params: dict[str, Any] = Field(default_factory=dict)
     capability: LLMCapability = LLMCapability.CHAT
+    preferred_contains: list[str] = Field(default_factory=list)
     context_refs: list = Field(default_factory=list)
     trace_id: Optional[str] = None
 

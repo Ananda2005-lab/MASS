@@ -5,13 +5,17 @@ Key rotation: 6 profiles each with its own key_ref and daily quota.
 """
 from __future__ import annotations
 
+import os
 import time
 
+from dotenv import load_dotenv
+
 from app.core.llm import LLMRequest, LLMResponse, Usage
-from app.gateway.adapters._http import chat_completion, list_models, parse_chat_response
+from app.gateway.adapters._http import chat_completion, chat_completion_stream, list_models, parse_chat_response
 from app.gateway.provider import ProviderAdapter
 
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
+load_dotenv()  # ensure backend/.env is loaded before reading GOOGLE_AI_STUDIO_BASE_URL
+BASE_URL = os.environ.get("GOOGLE_AI_STUDIO_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai").rstrip("/")
 DEFAULT_MODEL = "gemini-3.6-flash"
 MODEL_NAMES = {
     "google-gemini-3.6-flash": "gemini-3.6-flash",
@@ -36,8 +40,9 @@ class GoogleAIStudioProviderAdapter(ProviderAdapter):
             raise ValueError("missing api_key for google-ai-studio")
         model = MODEL_NAMES.get(request.model or "", request.model or DEFAULT_MODEL)
         started = time.monotonic()
+        base = credential.get("base_url") or BASE_URL  # per-key proxy override
         raw = await chat_completion(
-            base_url=BASE_URL,
+            base_url=base,
             api_key=api_key,
             model=model,
             messages=request.messages,
@@ -54,6 +59,18 @@ class GoogleAIStudioProviderAdapter(ProviderAdapter):
             latency_ms=parsed["latency_ms"],
             status=parsed["status"],
         )
+
+    async def complete_stream(self, request: LLMRequest, credential: dict):
+        api_key = credential.get("api_key")
+        if not api_key:
+            raise ValueError("missing api_key for google-ai-studio")
+        base = credential.get("base_url") or BASE_URL
+        model = MODEL_NAMES.get(request.model or "", request.model or DEFAULT_MODEL)
+        async for chunk in chat_completion_stream(
+            base_url=base, api_key=api_key, model=model,
+            messages=request.messages, params=request.params,
+        ):
+            yield chunk
 
     async def is_healthy(self) -> bool:
         try:

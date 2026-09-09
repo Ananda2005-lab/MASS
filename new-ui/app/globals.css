@@ -82,3 +82,428 @@ body {
 ::selection {
   background: rgba(167, 139, 250, 0.35);
 }
+
+/* ── living icons — gentle looping micro-animations (no strobing) ── */
+@keyframes icoBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50% { transform: translateY(-1.8px); opacity: 1; }
+}
+@keyframes icoTwinkle {
+  0%, 100% { transform: scale(0.65); opacity: 0.45; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+@keyframes icoBlink {
+  0%, 90%, 100% { opacity: 1; }
+  95% { opacity: 0.2; }
+}
+@keyframes icoPulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+@keyframes icoFlow {
+  to { stroke-dashoffset: -14; }
+}
+.ico-dot { animation: icoBounce 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.ico-d2 { animation-delay: 0.18s; }
+.ico-d3 { animation-delay: 0.36s; }
+.ico-spark { animation: icoTwinkle 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.ico-blink { animation: icoBlink 3.4s infinite; }
+.ico-pulse { animation: icoPulse 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.ico-flow { stroke-dasharray: 3 4; animation: icoFlow 1.1s linear infinite; }
+
+/* hover pe icons ki animation TEZ — clear feedback */
+.group:hover .ico-dot { animation-duration: 0.55s; }
+.group:hover .ico-spark { animation-duration: 0.9s; }
+.group:hover .ico-flow { animation-duration: 0.5s; }
+.group:hover .ico-pulse { animation-duration: 1.1s; }
+
+/* neon icon glow — always on, hover pe intense (per color) */
+.ico-glow-cyan { filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.5)); transition: filter 0.2s; }
+.group:hover .ico-glow-cyan { filter: drop-shadow(0 0 9px rgba(56, 189, 248, 1)); }
+.ico-glow-amber { filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.5)); transition: filter 0.2s; }
+.group:hover .ico-glow-amber { filter: drop-shadow(0 0 9px rgba(251, 191, 36, 1)); }
+.ico-glow-violet { filter: drop-shadow(0 0 3px rgba(167, 139, 250, 0.5)); transition: filter 0.2s; }
+.group:hover .ico-glow-violet { filter: drop-shadow(0 0 9px rgba(167, 139, 250, 1)); }
+.ico-glow-indigo { filter: drop-shadow(0 0 3px rgba(129, 140, 248, 0.5)); transition: filter 0.2s; }
+.group:hover .ico-glow-indigo { filter: drop-shadow(0 0 9px rgba(129, 140, 248, 1)); }
+.ico-glow-green { filter: drop-shadow(0 0 3px rgba(74, 222, 128, 0.5)); transition: filter 0.2s; }
+.group:hover .ico-glow-green { filter: drop-shadow(0 0 9px rgba(74, 222, 128, 1)); }
+.ico-glow-purple { filter: drop-shadow(0 0 3px rgba(192, 132, 252, 0.5)); transition: filter 0.2s; }
+.group:hover .ico-glow-purple { filter: drop-shadow(0 0 9px rgba(192, 132, 252, 1)); }
+
+/* inner content rows — hover pe chamak + lift + color tint */
+.hover-glow {
+  transition: box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+.hover-glow:hover {
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.2), inset 0 0 0 1px rgba(56, 189, 248, 0.3);
+  transform: translateY(-1px);
+  background-image: linear-gradient(90deg, rgba(56, 189, 248, 0.07), rgba(129, 140, 248, 0.04) 60%, transparent);
+}
+
+/* animated gradient text (FORGE wordmark) */
+@keyframes textFlow {
+  to { background-position: 200% center; }
+}
+.text-flow {
+  background-size: 200% auto;
+  animation: textFlow 3.2s linear infinite;
+}
+
+/* scrollbar thumb glow on hover */
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+/* ── GLOBAL TOUCH FX — har button hover pe bright, click pe colorful flash ── */
+button {
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+button:hover {
+  filter: brightness(1.14);
+}
+button:active {
+  transform: scale(0.965);
+  filter: brightness(1.35) drop-shadow(0 0 10px rgba(56, 189, 248, 0.7));
+}
+
+/* click ripple — colorful radial flash at click point */
+.click-ripple {
+  position: fixed;
+  width: 110px;
+  height: 110px;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 9999;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(56, 189, 248, 0.5) 30%,
+    rgba(167, 139, 250, 0.4) 55%,
+    transparent 72%
+  );
+  transform: scale(0);
+  opacity: 1;
+  animation: rippleOut 0.55s ease-out forwards;
+}
+@keyframes rippleOut {
+  to { transform: scale(1); opacity: 0; }
+}
+
+/* ── POWERFUL LOGO RING — conic gradient spinner around FORGE mark ── */
+.logo-ring {
+  position: absolute;
+  inset: -7px;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 48%,
+    #38bdf8 66%,
+    #a78bfa 82%,
+    #f472b6 93%,
+    transparent 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #fff calc(100% - 2px));
+  animation: logoSpin 2.8s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.8));
+  pointer-events: none;
+}
+@keyframes logoSpin {
+  to { transform: rotate(360deg); }
+}
+.group:hover .logo-ring {
+  animation-duration: 1s;
+}
+
+/* ── panel content entry cascade ── */
+@keyframes panelUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.panel-stagger > * { animation: panelUp 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.panel-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.panel-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.panel-stagger > *:nth-child(3) { animation-delay: 0.1s; }
+.panel-stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.panel-stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.panel-stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.panel-stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.panel-stagger > *:nth-child(8) { animation-delay: 0.3s; }
+.panel-stagger > *:nth-child(9) { animation-delay: 0.34s; }
+.panel-stagger > *:nth-child(10) { animation-delay: 0.38s; }
+.panel-stagger > *:nth-child(11) { animation-delay: 0.42s; }
+.panel-stagger > *:nth-child(12) { animation-delay: 0.46s; }
+
+/* new icon motions */
+@keyframes knobSlide {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(1.8px); }
+}
+.ico-knob { animation: knobSlide 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes icoWiggle {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+.ico-wiggle { animation: icoWiggle 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes icoDim {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.ico-dim { animation: icoDim 2.4s ease-in-out infinite; }
+
+/* ── LOGO: F color slowly cycling ── */
+@keyframes fHue {
+  0% { filter: hue-rotate(0deg) drop-shadow(0 0 3px rgba(129, 140, 248, 0.8)); }
+  100% { filter: hue-rotate(360deg) drop-shadow(0 0 3px rgba(129, 140, 248, 0.8)); }
+}
+.f-hue { animation: fHue 8s linear infinite; }
+
+/* clean version — sirf hue, koi shadow nahi (crisp edges) */
+@keyframes fHueClean {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+.f-hue-clean { animation: fHueClean 8s linear infinite; }
+
+/* glow copy — blurred + hue together */
+@keyframes fGlowHue {
+  0% { filter: hue-rotate(0deg) blur(2.2px); }
+  100% { filter: hue-rotate(360deg) blur(2.2px); }
+}
+.f-glow-layer { animation: fGlowHue 8s linear infinite; opacity: 0.85; }
+
+/* ── LOGO: hexagon background polish sweep ── */
+@keyframes hexPolish {
+  0% { transform: translateX(0) skewX(-18deg); }
+  45% { transform: translateX(88px) skewX(-18deg); }
+  100% { transform: translateX(88px) skewX(-18deg); }
+}
+.hex-polish { animation: hexPolish 3.4s ease-in-out infinite; }
+
+/* ── SETTINGS gear slow spin ── */
+@keyframes gearSpin {
+  to { transform: rotate(360deg); }
+}
+.gear-spin { animation: gearSpin 9s linear infinite; transform-origin: 12px 12px; }
+
+/* ── SHINE BUTTON — colorful rotating border (collapse button) ── */
+@property --sbAngle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.shine-btn {
+  position: relative;
+  padding: 1.5px;
+  border-radius: 9px;
+  background: conic-gradient(from var(--sbAngle), #38bdf8, #818cf8, #f472b6, #fbbf24, #38bdf8);
+  animation: sbSpin 3s linear infinite;
+}
+@keyframes sbSpin {
+  to { --sbAngle: 360deg; }
+}
+.shine-btn > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 7.5px;
+  background: #0b1120;
+}
+.shine-btn:hover {
+  animation-duration: 1s;
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.75));
+}
+
+/* ── PREMIUM FX layer (Magic UI / Aceternity techniques) ── */
+
+/* 1) SCREEN BORDER BEAM — light beam circling the whole screen edge */
+@property --sgAngle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.screen-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  padding: 2.5px;
+  background: conic-gradient(
+    from var(--sgAngle),
+    transparent 0 1%,
+    rgba(56, 189, 248, 0.95) 4%,
+    rgba(129, 140, 248, 0.95) 7%,
+    rgba(244, 114, 182, 0.9) 10%,
+    transparent 14% 50%,
+    rgba(56, 189, 248, 0.95) 53%,
+    rgba(167, 139, 250, 0.95) 56%,
+    rgba(244, 114, 182, 0.9) 59%,
+    transparent 63% 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: sgSpin 7s linear infinite;
+}
+@keyframes sgSpin {
+  to { --sgAngle: 360deg; }
+}
+/* ambient edge glow (breathing) */
+.screen-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 0 60px rgba(56, 189, 248, 0.08),
+    inset 0 0 160px rgba(129, 140, 248, 0.06);
+  animation: sgAmbient 5s ease-in-out infinite;
+}
+@keyframes sgAmbient {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* 2) EDGE BEAM — dual light beams (cyan down + violet up) on sidebar edge */
+.edge-beam {
+  position: absolute;
+  top: 0;
+  right: -1px;
+  width: 2px;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 30;
+}
+.edge-beam::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 180px;
+  background: linear-gradient(180deg, transparent, #38bdf8 40%, #a78bfa 60%, transparent);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 1), 0 0 44px rgba(56, 189, 248, 0.5);
+  animation: beamRun 3.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes beamRun {
+  0% { top: -200px; }
+  100% { top: 100%; }
+}
+.edge-beam::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 120px;
+  background: linear-gradient(0deg, transparent, #a78bfa 40%, #f0abfc 60%, transparent);
+  box-shadow: 0 0 16px rgba(167, 139, 250, 0.9);
+  animation: beamRunUp 4.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes beamRunUp {
+  0% { bottom: -140px; }
+  100% { bottom: 100%; }
+}
+
+/* 3) GLARE HOVER — sheen sweeps across a row on hover */
+@keyframes rowSweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(340%); }
+}
+.sweep-arm {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.group:hover .sweep-arm {
+  animation: rowSweep 0.9s ease forwards;
+}
+
+/* 4) CTA — flowing gradient + pulsating glow */
+@keyframes gradPan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes ctaGlow {
+  0%, 100% { box-shadow: 0 0 14px rgba(56, 189, 248, 0.4); }
+  50% { box-shadow: 0 0 32px rgba(56, 189, 248, 0.75), 0 0 64px rgba(129, 140, 248, 0.35); }
+}
+.cta-live {
+  animation: gradPan 4s ease infinite, ctaGlow 2.2s ease-in-out infinite;
+}
+
+/* 5) ACTIVE PILL — flowing gradient + color-shifting glow */
+@keyframes pillGlow {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45), 0 0 16px rgba(56, 189, 248, 0.3); }
+  50% { box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.55), 0 0 30px rgba(129, 140, 248, 0.5); }
+}
+.pill-live {
+  animation: gradPan 3s ease infinite, pillGlow 2.4s ease-in-out infinite;
+}
+
+/* ── CHATBOX FX (pill border, send ring, placeholder shimmer, nudge) ── */
+@property --cbAngle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes cbSpin {
+  to { --cbAngle: 360deg; }
+}
+.chat-ring {
+  background: conic-gradient(
+    from var(--cbAngle),
+    rgba(56, 189, 248, 0.85),
+    rgba(129, 140, 248, 0.85),
+    rgba(244, 114, 182, 0.8),
+    rgba(251, 191, 36, 0.65),
+    rgba(56, 189, 248, 0.85)
+  );
+  animation: cbSpin 6s linear infinite;
+}
+.chat-ring-fast { animation-duration: 1.6s; }
+
+.send-ring {
+  background: conic-gradient(from var(--cbAngle), #7dd3fc, #818cf8, #f472b6, #7dd3fc);
+  animation: cbSpin 3s linear infinite;
+}
+.send-ring-dim { animation-duration: 7s; opacity: 0.5; }
+.send-ring-fast { animation-duration: 0.9s; }
+
+.placeholder-shimmer {
+  background: linear-gradient(90deg, #7dd3fc, #818cf8, #c084fc, #f472b6, #7dd3fc);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradPan 5s linear infinite;
+  opacity: 0.6;
+  transition: opacity 0.25s;
+}
+.ph-flash { opacity: 1; animation-duration: 1.2s; }
+
+@keyframes nudgeShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px) rotate(-2deg); }
+  40% { transform: translateX(4px) rotate(2deg); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+.nudge-shake { animation: nudgeShake 0.45s ease; }
+
+/* message entry — spring-ish pop */
+@keyframes msgIn {
+  0% { opacity: 0; transform: translateY(10px) scale(0.97); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.005); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.msg-in { animation: msgIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }

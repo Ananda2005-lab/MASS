@@ -23,7 +23,9 @@ router = APIRouter(prefix="/instruction", tags=["instruction"])
 async def post_instruction(body: InstructionBody, request: Request):
     rt = get_runtime(request)
     conversation_id = body.conversation_id or str(uuid.uuid4())
-    task = await rt.submit_instruction(body.raw, conversation_id, body.user_id or "default-user", body.mode)
+    task = await rt.submit_instruction(
+        body.raw, conversation_id, body.user_id or "default-user", body.mode, image=body.image
+    )
     # Dispatch execution in the background; realtime streams progress (14).
     asyncio.create_task(_safe_run(rt, task.id))
     return {"task_id": task.id, "conversation_id": conversation_id, "status": task.status.value}

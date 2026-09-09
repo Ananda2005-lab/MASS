@@ -12,6 +12,8 @@ class InstructionBody(BaseModel):
     conversation_id: Optional[str] = None
     user_id: Optional[str] = "default-user"
     mode: str = "instruction"
+    # optional vision input: data-URI (data:image/...) or http(s) URL — model sees it
+    image: Optional[str] = None
 
 
 class WorkspaceActionBody(BaseModel):

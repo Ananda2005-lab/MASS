@@ -5,5 +5,5 @@ import { FxName } from "@/lib/fx/registry";
 export const BACKGROUNDS: Record<"entry" | "instruction" | "workspace", FxName> = {
   entry: "firefly",
   instruction: "jarvis",
-  workspace: "nebula",
+  workspace: "jelly",
 };

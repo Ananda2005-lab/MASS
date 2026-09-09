@@ -42,25 +42,50 @@ class Executor:
             inputs=step.input_refs,
             user_id=task.user_id,
         )
+        bd = bundle.model_dump()
+        # vision: task image (data-URI/url) flows to every sub-agent prompt
+        if task.metadata.get("image"):
+            bd["image"] = task.metadata["image"]
+        # quality-engineering #2: feedback-injected retry — pichhli failure ko prompt tak le jao
+        if step.retry_count > 0 and step.result is not None and step.result.error is not None:
+            bd["retry_feedback"] = (
+                "Previous attempt failed: " + str(step.result.error) + ". Address this directly."
+            )
         ctx = SubAgentContext(
             task_id=task_id,
             step_id=step.id,
             goal=step.goal,
             inputs=step.input_refs,
-            memory=bundle.model_dump(),
-            tools=[],
+            memory=bd,
+            tools=list(step.tool_ids),
             constraints=[c.model_dump() for c in task.intent.constraints],
         )
+        # token-level stream: attach a per-step emit sink for the sub-agent's LLM calls
+        import asyncio as _aio
+
+        from app.runtime.sub_agents.base import set_step_emit
+
+        def _token_emit(text: str) -> None:
+            try:
+                _aio.get_event_loop().create_task(
+                    self._emit(task_id, step.id, EventType.TOKEN, {"text": text})
+                )
+            except Exception:  # noqa: BLE001
+                pass
+
+        set_step_emit(_token_emit)
         try:
             res: SubAgentResult = await self._sam.run_sub_agent(role, ctx)
         except Exception as e:
             logger.error("step_failed", step=step.id, error=str(e))
             await self._emit(task_id, step.id, EventType.STEP_FAILED, {"error": str(e)})
             return Result(step_id=step.id, status=ResultStatus.FAILURE, error=_err(str(e)))
+        finally:
+            set_step_emit(None)
 
         # Verification at verification points uses the REAL SubAgentResult (decision 03).
         if self._verifier and step.id in task.plan.verification_points:
-            v = self._verifier.verify_sub_agent(res, task.intent.classification)
+            v = await self._verifier.verify_sub_agent(res, task.intent.classification, step.goal)
             if not v.passed:
                 logger.warning("verification_failed", step=step.id, findings=v.findings)
                 await self._emit(task_id, step.id, EventType.STEP_FAILED, {"verification": v.findings})

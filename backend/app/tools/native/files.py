@@ -24,10 +24,20 @@ def _ensure_sandbox() -> str:
 
 
 def _safe_path(rel_path: str) -> str:
-    """Resolve a sandbox-relative path, rejecting escapes. Raises ToolExecutionError."""
+    """Resolve a path, rejecting escapes in sandbox mode. Raises ToolExecutionError.
+
+    sandbox_scope=full (opt-in): absolute paths and home-relative paths allowed —
+    the agent then has whole-machine file reach (user accepted the risk).
+    """
     if not isinstance(rel_path, str) or not rel_path:
         raise ToolExecutionError("invalid path: path must be a non-empty string")
+    from app.config import settings
+
     norm = rel_path.replace("\\", "/")
+    if getattr(settings, "sandbox_scope", "sandbox") == "full":
+        if os.path.isabs(norm):
+            return os.path.abspath(norm)
+        return os.path.abspath(os.path.join(os.path.expanduser("~"), norm))
     if norm.startswith("/"):
         raise ToolExecutionError(f"absolute paths are not allowed: {rel_path!r}")
     if ".." in norm.split("/"):
@@ -58,7 +68,9 @@ async def read_file(invocation: ToolInvocation, tool: Tool) -> ToolResult:
 
 
 async def list_files(invocation: ToolInvocation, tool: Tool) -> ToolResult:
-    base = _ensure_sandbox()
+    base = _safe_path(str(invocation.params.get("path") or "."))
+    if not os.path.isdir(base):
+        raise ToolExecutionError(f"not a directory: {base!r}")
     entries: list[dict] = []
     for name in sorted(os.listdir(base)):
         full = os.path.join(base, name)

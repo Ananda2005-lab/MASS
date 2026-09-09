@@ -52,9 +52,29 @@ class Runtime:
         self.tool_manager = tool_manager
         self.memory_manager = memory_manager
         self.sub_agent_manager = sub_agent_manager
+        self.project_path: str | None = None
 
-    async def submit_instruction(self, raw: str, conversation_id: str, user_id: str, mode: str = "instruction") -> Task:
-        task = self.main_agent.create_task(raw, conversation_id, user_id, mode)
+    async def attach_project(self, path: str) -> int:
+        """Attach a folder as the MCP 'project' filesystem server (Claude/Codex
+        style). Returns how many tools got registered; 0 = server unavailable."""
+        import os
+
+        from app.runtime.managers.tool_manager import attach_mcp_server
+
+        cfg = {
+            "name": "project",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", os.path.abspath(path)],
+        }
+        n = await attach_mcp_server(self.tool_manager, cfg)
+        if n:
+            self.project_path = path
+        return n
+
+    async def submit_instruction(
+        self, raw: str, conversation_id: str, user_id: str, mode: str = "instruction", image: str | None = None
+    ) -> Task:
+        task = await self.main_agent.create_task(raw, conversation_id, user_id, mode, image=image)
         await self.state.save(task)
         await self.state.transition(task, TaskStatus.PLANNING, EventActor.SYSTEM)
         return task
@@ -77,12 +97,15 @@ async def build_runtime() -> Runtime:
     gateway.credential_resolver = env_secret_resolver  # resolve secrets at call time only
 
     tool_manager = create_tool_manager()
+    from app.runtime.managers.tool_manager import attach_mcp_tools
+
+    await attach_mcp_tools(tool_manager)  # MCP servers (AAP_MCP_SERVERS) → real tools
     memory_manager = create_memory_manager(memory_repo, gateway)
     sub_agent_manager = create_sub_agent_manager(gateway, tool_manager, memory_manager, event_bus)
 
-    planner = Planner()
+    planner = Planner(gateway)
     main_agent = MainAgent(planner)
-    verifier = Verifier()
+    verifier = Verifier(gateway)
     executor = Executor(sub_agent_manager, memory_manager, event_bus, verifier)
     orchestrator = Orchestrator(state, executor, verifier, planner, task_repo, step_repo, event_bus)
 

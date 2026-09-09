@@ -22,13 +22,23 @@ CredentialResolver = Callable[[str], dict]
 
 
 async def env_secret_resolver(key_ref: str) -> dict:
-    """Resolve a key_ref to credentials. In dev, fake provider needs no secret."""
+    """Resolve a key_ref to credentials. In dev, fake provider needs no secret.
+
+    Per-key base URL override: if <KEY_REF>_BASE_URL exists in env (e.g.
+    OPENROUTER_2_BASE_URL), it is returned so proxies (xkiro, bai, ...) can be
+    used alongside official endpoints — one URL per key, not per provider.
+    """
     if key_ref == "fake-key":
         return {}
-    value = os.environ.get(key_ref.upper().replace("-", "_"), "")
+    env_name = key_ref.upper().replace("-", "_")
+    value = os.environ.get(env_name, "")
     if not value:
         logger.warning("secret_missing", key_ref=key_ref)
-    return {"api_key": value}
+    creds: dict = {"api_key": value}
+    base = os.environ.get(f"{env_name}_BASE_URL", "")
+    if base:
+        creds["base_url"] = base.rstrip("/")
+    return creds
 
 
 def redact(payload: dict) -> dict:

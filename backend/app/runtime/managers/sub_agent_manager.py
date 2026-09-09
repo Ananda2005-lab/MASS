@@ -22,6 +22,17 @@ from app.log import get_logger
 from app.runtime.sub_agents import CONTRACTS, ROLE_HANDLERS
 from app.runtime.tool_call import ToolCallDispatcher
 
+
+def _sub_agent_result_payload(role, result) -> dict:
+    payload = {"role": role.value, "status": result.status.value}
+    out = getattr(result, "output", None)
+    # research evidence rides on the event so the UI Sources panel is live
+    if isinstance(out, dict) and out.get("sources"):
+        payload["sources"] = [
+            {"url": str(s), "title": ""} for s in out["sources"] if isinstance(s, str)
+        ][:5]
+    return payload
+
 logger = get_logger("sub_agent.manager")
 
 
@@ -127,7 +138,7 @@ class SubAgentManager:
         await self._publish(
             EventType.SUB_AGENT_RESULT,
             ctx,
-            {"role": role.value, "status": result.status.value},
+            _sub_agent_result_payload(role, result),
             EventActor.AGENT,
         )
         return result

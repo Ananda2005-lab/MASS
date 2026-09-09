@@ -18,6 +18,7 @@ from app.gateway.adapters.fake import FakeProviderAdapter
 from app.gateway.adapters.google import GoogleAIStudioProviderAdapter
 from app.gateway.adapters.groq import GroqProviderAdapter
 from app.gateway.adapters.openrouter import OpenRouterProviderAdapter
+from app.gateway.adapters.custom import OpenAICompatAdapter
 from app.gateway.gateway import LLMGateway
 from app.gateway.provider import ProviderRegistry, registry as global_registry
 
@@ -115,7 +116,7 @@ def _register_openrouter() -> tuple[dict[str, Model], dict[str, CredentialProfil
         ),
     }
     profiles: dict[str, CredentialProfile] = {}
-    for i in range(1, 6):
+    for i in range(1, 9):
         key_ref = f"openrouter-{i}"
         profiles[f"openrouter-{i}"] = CredentialProfile(
             id=f"openrouter-{i}",
@@ -235,6 +236,70 @@ def _register_google() -> tuple[dict[str, Model], dict[str, CredentialProfile]]:
     return models, profiles
 
 
+_CUSTOM_MODEL_SPECS = [
+    ("claude-sonnet-4", [LLMCapability.CHAT, LLMCapability.FUNCTION, LLMCapability.COMPLETION], 200_000, "premium"),
+    ("gpt-5", [LLMCapability.CHAT, LLMCapability.FUNCTION, LLMCapability.VISION], 128_000, "premium"),
+    ("gpt-4o", [LLMCapability.CHAT, LLMCapability.FUNCTION, LLMCapability.VISION], 128_000, "premium"),
+    ("gemini-3.6-flash", [LLMCapability.CHAT, LLMCapability.FUNCTION], 1_000_000, "standard"),
+    ("gemini-2.5-flash", [LLMCapability.CHAT, LLMCapability.FUNCTION], 1_000_000, "standard"),
+    ("deepseek-chat", [LLMCapability.CHAT, LLMCapability.FUNCTION], 128_000, "standard"),
+    ("llama-3.3-70b", [LLMCapability.CHAT, LLMCapability.FUNCTION], 128_000, "standard"),
+]
+
+
+def _register_openai_compat(pid: str, prefix: str) -> tuple[dict[str, Model], dict[str, CredentialProfile]]:
+    """Custom OpenAI-compatible proxy provider from .env (xkiro, b.ai, ...).
+
+    Keys: <PREFIX>1..8 or the bare name <PREFIX> minus trailing _; base URL:
+    <PREFIX>BASE_URL. key_ref keeps the exact lowercase env name as written in
+    .env, so `xkiro_1` / `bai_ai` lines work verbatim.
+    """
+    base_url = os.environ.get(f"{prefix}BASE_URL", "")
+    key_refs: list[str] = []
+    bare = prefix.rstrip("_")
+    if os.environ.get(bare):
+        key_refs.append(bare.lower())
+    for i in range(1, 9):
+        if os.environ.get(f"{prefix}{i}"):
+            key_refs.append(f"{prefix}{i}".lower())
+    if not base_url or not key_refs:
+        return {}, {}
+    provider = Provider(
+        id=pid,
+        name=pid,
+        kind="llm",
+        adapter_ref=pid,
+        capabilities=[LLMCapability.CHAT, LLMCapability.COMPLETION, LLMCapability.VISION, LLMCapability.FUNCTION],
+    )
+    global_registry.register(provider, OpenAICompatAdapter(base_url))
+    from app.gateway.adapters.custom import MODEL_COST, MODEL_NAMES
+
+    models: dict[str, Model] = {}
+    for suffix, caps, ctx, tier in _CUSTOM_MODEL_SPECS:
+        mid = f"{pid}-{suffix}"
+        models[mid] = Model(
+            id=mid,
+            provider_id=pid,
+            name=MODEL_NAMES[suffix],
+            capability_tags=caps,
+            context_window=ctx,
+            cost_unit=MODEL_COST.get(MODEL_NAMES[suffix], 1.0),
+            tier=tier,
+        )
+    profiles: dict[str, CredentialProfile] = {}
+    for ref in key_refs:
+        profiles[ref] = CredentialProfile(
+            id=ref,
+            provider_id=pid,
+            key_ref=ref,
+            quota=QuotaState(used=0.0, limit=DAILY_QUOTA, window="daily"),
+            rate_limit=60,
+            allowed_models=list(models.keys()),
+            terms_scope="standard",
+        )
+    return models, profiles
+
+
 def build_default_gateway() -> LLMGateway:
     """Build the gateway with Fake fallback + real providers when keys exist.
 
@@ -312,4 +377,18 @@ def build_default_gateway() -> LLMGateway:
         all_models.update(m)
         all_profiles.update(p)
 
-    return LLMGateway(global_registry, all_models, all_profiles, default_model="groq-gpt-oss-120b")
+    # Custom OpenAI-compatible proxies (xkiro, b.ai) — activated by env base URL
+    for pid, prefix in (("xkiro", "XKIRO_"), ("bai-ai", "BAI_AI_")):
+        m, p = _register_openai_compat(pid, prefix)
+        all_models.update(m)
+        all_profiles.update(p)
+
+    # default model must exist in the registered set (keyless dev → fake-standard)
+    if "groq-gpt-oss-120b" in all_models:
+        default = "groq-gpt-oss-120b"
+    else:
+        default = next(
+            (m for m in all_models if m.startswith(("openrouter-claude", "openrouter-gpt"))),
+            "fake-standard",
+        )
+    return LLMGateway(global_registry, all_models, all_profiles, default_model=default)

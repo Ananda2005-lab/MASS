@@ -51,7 +51,9 @@ class MainAgent:
         # user may specify "avoid browser" etc. — captured as scope constraints.
         return out
 
-    def create_task(self, raw: str, conversation_id: str, user_id: str, mode: str = "instruction") -> Task:
+    async def create_task(
+        self, raw: str, conversation_id: str, user_id: str, mode: str = "instruction", image: str | None = None
+    ) -> Task:
         goal = raw.strip()
         intent = TaskIntent(
             raw=raw,
@@ -64,7 +66,8 @@ class MainAgent:
             conversation_id=conversation_id,
             user_id=user_id,
             intent=intent,
-            plan=self._planner.plan(intent),
+            plan=await self._planner.aplan(intent),
             status=TaskStatus.CREATED,
+            metadata={"image": image} if image else {},
         )
         return task

@@ -18,7 +18,7 @@ from app.core.sub_agent import (
 )
 from app.core.task import ResultStatus
 from app.log import get_logger
-from app.runtime.sub_agents.base import reason_via_llm
+from app.runtime.sub_agents.base import extract_code, reason_via_llm, reason_with_ctx, reason_with_tools
 
 logger = get_logger("sub_agent.roles")
 
@@ -33,6 +33,8 @@ def _ctx_text(ctx: SubAgentContext) -> str:
         parts.append("Constraints: " + "; ".join(str(c) for c in ctx.constraints))
     if ctx.memory:
         parts.append("Available memory keys: " + ", ".join(str(k) for k in ctx.memory.keys()))
+    if ctx.memory.get("retry_feedback"):
+        parts.append("RETRY FEEDBACK: " + str(ctx.memory["retry_feedback"]))
     return "\n".join(parts)
 
 
@@ -51,7 +53,9 @@ async def _maybe_invoke(tool_manager, tool_id: str, args: dict) -> Optional[dict
     if tool_manager is None or not hasattr(tool_manager, "invoke"):
         return None
     try:
-        invocation = {"tool": tool_id, "args": args}
+        from app.core.tool import ToolInvocation
+
+        invocation = ToolInvocation(tool_id=tool_id, params=args, caller="sub-agent")
         result = await tool_manager.invoke(invocation)
         if result is None:
             return None
@@ -72,15 +76,28 @@ async def research_run(
     ctx: SubAgentContext, gateway, tool_manager, memory: dict | None = None
 ) -> SubAgentResult:
     used: list[str] = []
+    evidence = ""
     if any("web" in str(t) or "search" in str(t) or "browser" in str(t) for t in ctx.tools):
-        used = ["web.fetch/search.query/browser.navigate (best-effort)"]
-        await _maybe_invoke(tool_manager, "search.query", {"query": ctx.goal})
+        res = await _maybe_invoke(tool_manager, "search.query", {"query": ctx.goal})
+        hits = ((res or {}).get("output") or {}).get("results") or []
+        used = [(h.get("url") or h.get("title") or "source") for h in hits][:5]
+        if hits:
+            evidence = "\n".join(
+                f"- {h.get('title', '')}: {h.get('snippet', '')} <{h.get('url', '')}>"
+                for h in hits
+                if h.get("title")
+            )
     prompt = (
         f"You are a Research sub-agent. {_ctx_text(ctx)}\n"
         "Produce structured findings with distinct claims and the sources they "
         "derive from. Be specific and cite where each finding comes from."
     )
-    content = await reason_via_llm(gateway, prompt)
+    if evidence:
+        prompt += (
+            "\nLIVE SEARCH EVIDENCE (ground your answer in this, cite the urls):\n"
+            + evidence
+        )
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.RESEARCH,
         status=ResultStatus.SUCCESS,
@@ -104,7 +121,7 @@ async def deep_reading_run(
         "Read the given material in context and return a concise summary, the key "
         "points that matter for the stated goal, and any open questions."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.DEEP_READING,
         status=ResultStatus.SUCCESS,
@@ -128,7 +145,7 @@ async def analysis_run(
         "Analyze the inputs in context and produce actionable insights with brief "
         "supporting reasoning for each."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.ANALYSIS,
         status=ResultStatus.SUCCESS,
@@ -152,7 +169,7 @@ async def planning_run(
         "Decompose the goal into an ordered plan with steps, dependencies, and the "
         "kind of work each step requires."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.PLANNING,
         status=ResultStatus.SUCCESS,
@@ -168,20 +185,21 @@ async def coding_run(
     ctx: SubAgentContext, gateway, tool_manager, memory: dict | None = None
 ) -> SubAgentResult:
     used: list[str] = []
-    if any("code" in str(t) or "terminal" in str(t) or "files" in str(t) for t in ctx.tools):
-        used = ["code.run/terminal.exec/files.write (best-effort)"]
-        await _maybe_invoke(tool_manager, "files.write", {"target": ctx.goal, "content": ""})
     prompt = (
         f"You are a Coding sub-agent. {_ctx_text(ctx)}\n"
         "Write correct, self-contained code that addresses the goal. Include the "
         "language and a short note on what the code does."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_tools(gateway, prompt, tool_manager, [str(t) for t in ctx.tools], image=(ctx.memory or {}).get('image'))
+    code = extract_code(content)
+    artifact = f"coding-{ctx.step_id[:8]}.md"
+    if await _maybe_invoke(tool_manager, "files.write", {"path": artifact, "content": "```\n" + code + "\n```\n"}):
+        used.append(f"files.write→{artifact}")
     return SubAgentResult(
         role=SubAgentRole.CODING,
         status=ResultStatus.SUCCESS,
         rationale=_build_rationale("coding", ctx, "Generated code directly addressing the goal, considering constraints and intended runtime.", used),
-        output={"code": content, "language": "auto"},
+        output={"code": code, "language": "auto", "artifact": artifact},
         verification={"self_checked": True, "notes": "Generated; formal verification delegated to verification sub-agent."},
     )
 
@@ -201,7 +219,7 @@ async def writing_run(
         "Produce coherent, goal-oriented prose appropriate to the requested format "
         "and audience."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.WRITING,
         status=ResultStatus.SUCCESS,
@@ -226,7 +244,7 @@ async def debug_run(
         "Diagnose the failure: state the observed symptom, hypothesize root causes, "
         "and identify the most likely one with reasoning."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_tools(gateway, prompt, tool_manager, [str(t) for t in ctx.tools], image=(ctx.memory or {}).get('image'))
     return SubAgentResult(
         role=SubAgentRole.DEBUG,
         status=ResultStatus.SUCCESS,
@@ -251,7 +269,7 @@ async def fix_run(
         "Propose a concrete remediation: describe the change, show the patch or "
         "revised code, and explain why it resolves the issue."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_tools(gateway, prompt, tool_manager, [str(t) for t in ctx.tools], image=(ctx.memory or {}).get('image'))
     return SubAgentResult(
         role=SubAgentRole.FIX,
         status=ResultStatus.SUCCESS,
@@ -276,7 +294,7 @@ async def review_run(
         "Critically review the work for correctness, clarity, and risk. List issues "
         "and give a clear verdict (approve / changes-requested)."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.REVIEW,
         status=ResultStatus.SUCCESS,
@@ -301,7 +319,7 @@ async def testing_run(
         "Design or describe tests that validate the behavior, noting what each test "
         "covers and expected outcomes."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_tools(gateway, prompt, tool_manager, [str(t) for t in ctx.tools], image=(ctx.memory or {}).get('image'))
     return SubAgentResult(
         role=SubAgentRole.TESTING,
         status=ResultStatus.SUCCESS,
@@ -326,7 +344,7 @@ async def browser_run(
         "Describe the navigation/extraction actions taken and the observations "
         "collected that are relevant to the goal."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.BROWSER,
         status=ResultStatus.SUCCESS,
@@ -350,7 +368,7 @@ async def file_run(
         "Describe the file operations needed to satisfy the goal and the resulting "
         "state of the relevant files."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.FILE,
         status=ResultStatus.SUCCESS,
@@ -374,7 +392,7 @@ async def verification_run(
         "Verify the produced result against the goal. List the checks performed, "
         "whether they passed, and a concise report."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.VERIFICATION,
         status=ResultStatus.SUCCESS,
@@ -399,7 +417,7 @@ async def security_run(
         "Assess the requested action for security and permission risks. List risks, "
         "required permissions, and an overall assessment."
     )
-    content = await reason_via_llm(gateway, prompt)
+    content = await reason_with_ctx(ctx, gateway, prompt)
     return SubAgentResult(
         role=SubAgentRole.SECURITY,
         status=ResultStatus.SUCCESS,
@@ -422,14 +440,14 @@ CONTRACTS: dict[SubAgentRole, SubAgentContract] = {
     ),
     SubAgentRole.DEEP_READING: SubAgentContract(
         role=SubAgentRole.DEEP_READING,
-        capabilities=["files.read", "web.fetch"],
+        capabilities=["files.read", "files.list", "terminal.exec", "web.fetch"],
         model_preferences=["fake-standard"],
         max_retries=2,
         verification_aware=True,
     ),
     SubAgentRole.ANALYSIS: SubAgentContract(
         role=SubAgentRole.ANALYSIS,
-        capabilities=["files.read", "code.analyze", "data.query"],
+        capabilities=["files.read", "files.list", "terminal.exec", "search.query"],
         model_preferences=["fake-standard"],
         max_retries=2,
         verification_aware=True,
@@ -487,7 +505,7 @@ CONTRACTS: dict[SubAgentRole, SubAgentContract] = {
     ),
     SubAgentRole.BROWSER: SubAgentContract(
         role=SubAgentRole.BROWSER,
-        capabilities=["browser.navigate", "browser.click", "browser.extract"],
+        capabilities=["browser.navigate", "browser.act", "web.fetch"],
         model_preferences=["fake-standard"],
         max_retries=2,
         verification_aware=True,

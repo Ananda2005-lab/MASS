@@ -87,6 +87,58 @@ async def chat_completion(
         return resp.json()
 
 
+async def chat_completion_stream(
+    *,
+    base_url: str,
+    api_key: str,
+    model: str,
+    messages: list[Message],
+    params: dict[str, Any],
+    extra_headers: Optional[dict[str, str]] = None,
+):
+    """SSE streaming variant of chat_completion. Yields content delta strings.
+
+    Raises on non-2xx before yielding; mid-stream errors propagate to caller.
+    """
+    payload: dict[str, Any] = {
+        "model": model,
+        "messages": to_openai_messages(messages),
+        "temperature": params.get("temperature", 0.3),
+        "max_tokens": params.get("max_tokens", 4096),
+        "stream": True,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    if extra_headers:
+        headers.update(extra_headers)
+
+    async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
+        async with client.stream("POST", f"{base_url}/chat/completions", json=payload, headers=headers) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                line = line.strip()
+                if not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    break
+                if not data:
+                    continue
+                try:
+                    j = json.loads(data)
+                except json.JSONDecodeError:
+                    continue
+                try:
+                    delta = (j.get("choices") or [{}])[0].get("delta") or {}
+                    content = delta.get("content")
+                except Exception:  # noqa: BLE001
+                    content = None
+                if content:
+                    yield content
+
+
 async def list_models(base_url: str, api_key: str) -> bool:
     """Cheap health probe: GET /models with the key. Returns True on 200."""
     try:

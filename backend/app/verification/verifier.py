@@ -21,6 +21,10 @@ class VerificationResult:
 
 
 class Verifier:
+    def __init__(self, gateway=None) -> None:
+        # quality-engineering #5: optional LLM judge for semantic verification
+        self._gateway = gateway
+
     def verify_result(self, result: Result, task_type: TaskType) -> VerificationResult:
         """Verify a core Result (post-execution). Rich per-category checks run earlier
         on the real SubAgentResult (in Executor); here we confirm the stored Result is
@@ -32,7 +36,7 @@ class Verifier:
             return VerificationResult(False, "summary", ["empty result summary"], 1.0)
         return VerificationResult(True, "result", [], 1.0)
 
-    def verify_sub_agent(self, res: SubAgentResult, task_type: TaskType) -> VerificationResult:
+    async def verify_sub_agent(self, res: SubAgentResult, task_type: TaskType, goal: str = "") -> VerificationResult:
         method = f"category:{task_type.value}"
         findings: list[str] = []
         ok = res.status.value == "success"
@@ -53,7 +57,30 @@ class Verifier:
             findings.append("file task missing content/path"); ok = False
         if not res.rationale:
             findings.append("missing rationale (Phase 1 §8)"); ok = False
+
+        # quality-engineering #5: semantic LLM judge (fail-open on parse/provider errors)
+        if ok and self._gateway is not None:
+            try:
+                from app.runtime.sub_agents.base import reason_via_llm, safe_json
+
+                out_txt = str(res.output)[:1500]
+                raw = await reason_via_llm(
+                    self._gateway,
+                    "You are a strict quality judge. GOAL: "
+                    + (goal or f"{task_type.value} task")
+                    + f"\nOUTPUT:\n{out_txt}\n"
+                    + 'Does the output concretely and completely satisfy the goal? '
+                    + 'Respond with strict JSON only: {"pass": true, "reason": "..."}',
+                    params={"temperature": 0.0, "max_tokens": 200},
+                    contract=False,
+                )
+                verdict = safe_json(raw) or {}
+                if verdict.get("pass") is False:
+                    ok = False
+                    findings.append("semantic judge: " + str(verdict.get("reason", "quality below bar"))[:200])
+            except Exception:  # noqa: BLE001 - judge must never break the pipeline
+                pass
         return VerificationResult(ok, method, findings, 0.9 if ok else 1.0)
 
-    def verify_step(self, task_type: TaskType, res: SubAgentResult) -> VerificationResult:
-        return self.verify_sub_agent(res, task_type)
+    async def verify_step(self, task_type: TaskType, res: SubAgentResult, goal: str = "") -> VerificationResult:
+        return await self.verify_sub_agent(res, task_type, goal)

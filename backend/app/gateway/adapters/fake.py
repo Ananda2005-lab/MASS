@@ -52,5 +52,11 @@ class FakeProviderAdapter(ProviderAdapter):
             status="success",
         )
 
+    async def complete_stream(self, request, credential):
+        resp = await self.complete(request, credential)
+        for word in str(resp.content).split(" "):
+            await asyncio.sleep(0.01)
+            yield word + " "
+
     async def is_healthy(self) -> bool:
         return True

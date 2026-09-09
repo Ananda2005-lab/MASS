@@ -39,6 +39,24 @@ class Settings(BaseSettings):
     }
     provider_config_path: str = "config/providers.yaml"
 
+    # Security: "auto" = sandbox-scoped tools run without tickets; "ask" = tickets required
+    safety_mode: str = "auto"
+
+    # MCP servers (JSON list via AAP_MCP_SERVERS): [{"name","command","args","env"}]
+    mcp_servers: list = []
+
+    # Terminal/files reach: "sandbox" (default, ./sandbox only) or "full"
+    # (opt-in whole-machine control for terminal + file tools).
+    sandbox_scope: str = "sandbox"
+
+    # Quality-engineering: self-refine pass (draft → self-critique → improved final)
+    self_refine: bool = True
+    # Token-level streaming to step emit sink (UI live typing)
+    streaming: bool = True
+    # User-controlled live gating (UI switches): comma-separated ids/roles
+    disabled_tools: str = ""
+    disabled_roles: str = ""
+
     # Context
     context_token_threshold_ratio: float = 0.70
 

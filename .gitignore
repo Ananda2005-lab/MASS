@@ -33,3 +33,6 @@ uv.err
 # Screenshots / temp
 *.png
 *.shot
+aap.db
+backend/aap.db-*
+backend/sandbox/

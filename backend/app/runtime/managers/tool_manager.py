@@ -18,6 +18,7 @@ from app.core.tool import (
     ToolResultStatus,
     ErrorHandling,
 )
+from app.config import settings
 from app.security.permissions import PermissionChecker, denied_result
 from app.exceptions import ToolExecutionError
 from app.log import get_logger
@@ -28,9 +29,46 @@ from app.tools.mcp_adapter import MCPAdapter
 
 logger = get_logger("runtime.managers.tool_manager")
 
-# Module-level adapter shared by all ToolManager instances (graceful no-op until a
-# real MCP server is configured). Tolerant on import.
+# Module-level adapter shared by all ToolManager instances. Server list comes from
+# settings.mcp_servers (env AAP_MCP_SERVERS). Tolerant on import.
 _mcp_adapter = MCPAdapter()
+
+
+def mcp_adapter() -> MCPAdapter:
+    return _mcp_adapter
+
+
+async def attach_mcp_tools(manager: "ToolManager") -> int:
+    """Discover MCP server tools (if configured) and register them. Returns count.
+
+    Like Codex/Claude: a default bundled server ships pre-added (filesystem,
+    rooted at ./sandbox for safety) and user servers from AAP_MCP_SERVERS merge
+    on top. Dead/missing servers only warn — never break startup.
+    """
+    import os
+
+    default_servers = [
+        {
+            "name": "filesystem",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", os.path.abspath("./sandbox")],
+        },
+    ]
+    user_servers = list(getattr(settings, "mcp_servers", []) or [])
+    total = 0
+    for cfg in default_servers + user_servers:
+        total += await attach_mcp_server(manager, cfg, remember=False)
+    return total
+
+
+async def attach_mcp_server(manager: "ToolManager", cfg: dict, remember: bool = True) -> int:
+    """Discover ONE MCP server and register its tools on the manager."""
+    tools = await _mcp_adapter._discover_server(cfg)
+    if tools and remember:
+        _mcp_adapter._servers.append(cfg)
+    for t in tools:
+        manager.register(t)
+    return len(tools)
 
 
 def build_default_tools() -> list[Tool]:
@@ -63,6 +101,20 @@ class ToolManager:
     async def invoke(self, invocation: ToolInvocation, caller: str = "") -> ToolResult:
         if caller:
             invocation.caller = caller
+
+        # user-controlled live gating (UI switch)
+        try:
+            from app.config import settings
+
+            disabled = {x.strip() for x in (settings.disabled_tools or "").split(",") if x.strip()}
+            if invocation.tool_id in disabled:
+                return ToolResult(
+                    invocation_id=invocation.id,
+                    status=ToolResultStatus.FAILURE,
+                    error={"code": "disabled_by_user", "message": f"{invocation.tool_id} is disabled in the UI"},
+                )
+        except Exception:  # noqa: BLE001 - gating must never crash dispatch
+            pass
 
         tool = self._registry.get(invocation.tool_id)
         if tool is None:

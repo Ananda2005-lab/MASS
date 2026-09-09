@@ -56,6 +56,21 @@ async def get_results(task_id: str, request: Request):
     }
 
 
+@router.get("/tasks/{task_id}/events")
+async def get_events(task_id: str, request: Request, since_seq: int = 0):
+    """Event replay for polling clients (token stream, step progress)."""
+    from app.api.deps import get_runtime as _grt
+
+    rt = _grt(request)
+    rows = await rt.event_bus.replay(task_id, since_seq)
+    return {
+        "events": [
+            {"seq": r["seq"], "type": r["type"], "payload": r.get("payload") or {}}
+            for r in rows
+        ]
+    }
+
+
 @router.post("/workspace/action")
 async def workspace_action(body: WorkspaceActionBody, request: Request):
     rt = get_runtime(request)

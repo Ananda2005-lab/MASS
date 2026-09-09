@@ -25,6 +25,7 @@ class EventType(str, Enum):
     TOOL_RESULT = "tool_result"
     LLM_CALLED = "llm_called"
     LLM_RESULT = "llm_result"
+    TOKEN = "token"
     SUB_AGENT_SELECTED = "sub_agent_selected"
     SUB_AGENT_RESULT = "sub_agent_result"
     VERIFICATION_STARTED = "verification_started"

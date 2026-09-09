@@ -20,7 +20,8 @@ from app.core.tool import (
 from app.tools.native.files import read_file, list_files, write_file
 from app.tools.native.calculator import eval_expression
 from app.tools.native.terminal import exec_command
-from app.tools.native.browser import navigate
+from app.tools.native.browser import navigate, browser_act
+from app.tools.native.web import search_query, fetch_page
 
 
 NATIVE_HANDLERS: dict[str, callable] = {
@@ -30,6 +31,9 @@ NATIVE_HANDLERS: dict[str, callable] = {
     "calculator.eval": eval_expression,
     "terminal.exec": exec_command,
     "browser.navigate": navigate,
+    "browser.act": browser_act,
+    "search.query": search_query,
+    "web.fetch": fetch_page,
 }
 
 
@@ -170,6 +174,87 @@ def build_native_tools() -> list[Tool]:
                     "properties": {
                         "title": {"type": "string"},
                         "body_snippet": {"type": "string"},
+                    },
+                },
+            ),
+        ),
+        Tool(
+            id="browser.act",
+            handler_ref="browser.act",
+            impl_kind="native",
+            metadata=ToolMetadata(
+                name="Browser Automate",
+                description="Full browser session: goto/click/type/select/wait/extract/screenshot in order.",
+                category=ToolCategory.BROWSER,
+                execution=ExecutionKind.ASYNC,
+                error_handling=ErrorHandling.FALLBACK,
+                permissions=[Permission(name="network", description="Outbound network access")],
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "url": {"type": "string"},
+                        "actions": {"type": "array"},
+                    },
+                },
+                output_schema={
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "observations": {"type": "array"},
+                        "text": {"type": "string"},
+                    },
+                },
+            ),
+        ),
+        Tool(
+            id="search.query",
+            handler_ref="search.query",
+            impl_kind="native",
+            metadata=ToolMetadata(
+                name="Web Search",
+                description="Search the web (keyless DuckDuckGo HTML) and return titled, sourced snippets.",
+                category=ToolCategory.SEARCH,
+                execution=ExecutionKind.ASYNC,
+                error_handling=ErrorHandling.FALLBACK,
+                permissions=[Permission(name="network", description="Outbound network access")],
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string"},
+                        "max_results": {"type": "integer"},
+                    },
+                    "required": ["query"],
+                },
+                output_schema={
+                    "type": "object",
+                    "properties": {"results": {"type": "array"}},
+                },
+            ),
+        ),
+        Tool(
+            id="web.fetch",
+            handler_ref="web.fetch",
+            impl_kind="native",
+            metadata=ToolMetadata(
+                name="Fetch Page",
+                description="Fetch a URL and return cleaned readable text plus title.",
+                category=ToolCategory.WEB,
+                execution=ExecutionKind.ASYNC,
+                error_handling=ErrorHandling.FALLBACK,
+                permissions=[Permission(name="network", description="Outbound network access")],
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "url": {"type": "string"},
+                        "max_chars": {"type": "integer"},
+                    },
+                    "required": ["url"],
+                },
+                output_schema={
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "text": {"type": "string"},
                     },
                 },
             ),

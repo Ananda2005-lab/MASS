@@ -49,7 +49,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["Inter", "Segoe UI", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["var(--font-inter)", "Inter", "Segoe UI", "system-ui", "-apple-system", "sans-serif"],
+        display: ["var(--font-sora)", "var(--font-inter)", "Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "Fira Code", "Consolas", "monospace"],
       },
       fontSize: {
@@ -93,6 +94,10 @@ const config: Config = {
         "slide-in": "slideIn 300ms cubic-bezier(0.4,0,0.2,1) both",
         "fade-in": "fadeIn 200ms ease-out both",
         "scale-pop": "scalePop 200ms cubic-bezier(0.34,1.56,0.64,1) both",
+        // sidebar premium
+        "spin-slow": "spinSlow 14s linear infinite",
+        breathe: "breathe 3.5s ease-in-out infinite",
+        "gradient-pan": "gradientPan 8s ease infinite",
       },
       keyframes: {
         pulseSoft: {
@@ -131,6 +136,16 @@ const config: Config = {
         scalePop: {
           from: { transform: "scale(0.95)", opacity: "0" },
           to: { transform: "scale(1)", opacity: "1" },
+        },
+        // sidebar premium
+        spinSlow: { to: { transform: "rotate(360deg)" } },
+        breathe: {
+          "0%,100%": { opacity: "0.45" },
+          "50%": { opacity: "1" },
+        },
+        gradientPan: {
+          "0%,100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
         },
       },
     },
