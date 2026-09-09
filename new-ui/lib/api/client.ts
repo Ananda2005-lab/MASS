@@ -1,7 +1,9 @@
 // Backend API client — single point of configuration for the backend URL.
 // Update BASE_URL when the backend address changes.
 
-const BASE_URL = "http://localhost:8200";
+// Preview/proxy-safe: same-origin /backend (next.config.js rewrite isko
+// sandbox ke andar backend:8200 par forward karta hai).
+const BASE_URL = "/backend";
 
 export const API = {
   async health(): Promise<boolean> {
