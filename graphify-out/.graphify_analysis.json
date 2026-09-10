@@ -1,0 +1,256 @@
+{
+  "communities": {
+    "0": [
+      "master_project_specification_ai_agent_platform_master_project_specification",
+      "planning_01_product_requirements_product_requirements",
+      "planning_02_architecture_architecture",
+      "planning_03_agent_runtime_agent_runtime",
+      "planning_04_orchestration_orchestration",
+      "planning_05_sub_agent_architecture_sub_agent_architecture",
+      "planning_06_tool_architecture_tool_architecture",
+      "planning_07_llm_gateway_llm_gateway",
+      "planning_08_memory_context_memory_context",
+      "planning_09_task_state_task_state",
+      "planning_10_ui_modes_ui_modes",
+      "planning_11_security_security",
+      "planning_12_data_architecture_data_architecture",
+      "planning_13_testing_strategy_testing_strategy",
+      "planning_14_future_extensions_future_extensions",
+      "planning_readme_planning_foundation"
+    ],
+    "1": [
+      "opencode_opencode_bash_cat",
+      "opencode_opencode_bash_git_diff",
+      "opencode_opencode_bash_git_log",
+      "opencode_opencode_bash_git_push",
+      "opencode_opencode_bash_git_reset",
+      "opencode_opencode_bash_git_show",
+      "opencode_opencode_bash_git_status",
+      "opencode_opencode_bash_ls",
+      "opencode_opencode_bash_npm_install",
+      "opencode_opencode_bash_npm_run",
+      "opencode_opencode_bash_pytest",
+      "opencode_opencode_bash_rm",
+      "opencode_opencode_bash_rm_rf",
+      "opencode_opencode_permission_bash"
+    ],
+    "2": [
+      "opencode_opencode_code_intelligence_command",
+      "opencode_opencode_code_intelligence_enabled",
+      "opencode_opencode_code_intelligence_timeout",
+      "opencode_opencode_code_intelligence_type",
+      "opencode_opencode_context7_command",
+      "opencode_opencode_mcp_code_intelligence",
+      "ref_language_server_mcp",
+      "ref_npx",
+      "ref_upstash_context7_mcp",
+      "ref_y"
+    ],
+    "3": [
+      "opencode_opencode_graphify_command",
+      "opencode_opencode_graphify_enabled",
+      "opencode_opencode_graphify_timeout",
+      "opencode_opencode_graphify_type",
+      "opencode_opencode_mcp_graphify",
+      "ref_graph",
+      "ref_graphify_mcp_tools",
+      "ref_graphify_out",
+      "ref_mcp"
+    ],
+    "4": [
+      "opencode_opencode",
+      "opencode_opencode_instructions",
+      "opencode_opencode_mcp",
+      "opencode_opencode_permission",
+      "opencode_opencode_plugin",
+      "opencode_opencode_schema",
+      "ref_master_project_specification_ai_agent_platform_md",
+      "ref_opencode_plugin_project_context_js"
+    ],
+    "5": [
+      "opencode_opencode_context7_enabled",
+      "opencode_opencode_context7_environment",
+      "opencode_opencode_context7_timeout",
+      "opencode_opencode_context7_type",
+      "opencode_opencode_environment_context7_api_key",
+      "opencode_opencode_mcp_context7"
+    ],
+    "6": [
+      "opencode_agent_analysis_agent_analysis_agent"
+    ],
+    "7": [
+      "opencode_agent_browser_agent_browser_agent"
+    ],
+    "8": [
+      "opencode_agent_coding_agent_coding_agent"
+    ],
+    "9": [
+      "opencode_agent_debug_agent_debug_agent"
+    ],
+    "10": [
+      "opencode_agent_file_agent_file_agent"
+    ],
+    "11": [
+      "opencode_agent_fix_agent_fix_agent"
+    ],
+    "12": [
+      "opencode_agent_planning_agent_planning_agent"
+    ],
+    "13": [
+      "opencode_agent_research_agent_research_agent"
+    ],
+    "14": [
+      "opencode_agent_review_agent_review_agent"
+    ],
+    "15": [
+      "opencode_agent_security_agent_security_agent"
+    ],
+    "16": [
+      "opencode_agent_testing_agent_testing_agent"
+    ],
+    "17": [
+      "opencode_agent_verification_agent_verification_agent"
+    ],
+    "18": [
+      "opencode_agent_writing_agent_writing_agent"
+    ],
+    "19": [
+      "opencode_plugin_project_context"
+    ]
+  },
+  "cohesion": {
+    "0": 0.19166666666666668,
+    "1": 0.14285714285714285,
+    "2": 0.2222222222222222,
+    "3": 0.2222222222222222,
+    "4": 0.25,
+    "5": 0.3333333333333333,
+    "6": 1.0,
+    "7": 1.0,
+    "8": 1.0,
+    "9": 1.0,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0
+  },
+  "gods": [
+    {
+      "id": "master_project_specification_ai_agent_platform_master_project_specification",
+      "label": "Master Project Specification",
+      "degree": 15
+    },
+    {
+      "id": "opencode_opencode_permission_bash",
+      "label": "bash",
+      "degree": 14
+    },
+    {
+      "id": "opencode_opencode_graphify_command",
+      "label": "command",
+      "degree": 7
+    },
+    {
+      "id": "opencode_opencode_mcp_context7",
+      "label": "context7",
+      "degree": 6
+    },
+    {
+      "id": "opencode_opencode_mcp_graphify",
+      "label": "graphify",
+      "degree": 5
+    },
+    {
+      "id": "opencode_opencode_mcp_code_intelligence",
+      "label": "code-intelligence",
+      "degree": 5
+    },
+    {
+      "id": "planning_03_agent_runtime_agent_runtime",
+      "label": "Agent Runtime",
+      "degree": 5
+    },
+    {
+      "id": "opencode_opencode_mcp",
+      "label": "mcp",
+      "degree": 4
+    },
+    {
+      "id": "opencode_opencode_context7_command",
+      "label": "command",
+      "degree": 4
+    },
+    {
+      "id": "opencode_opencode_code_intelligence_command",
+      "label": "command",
+      "degree": 4
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Product Requirements",
+      "target": "Master Project Specification",
+      "source_files": [
+        "planning/01-product-requirements.md",
+        "Master Project Specification \u2014 AI Agent Platform.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "cites",
+      "why": "connects across different repos/directories; peripheral node `Product Requirements` unexpectedly reaches hub `Master Project Specification`"
+    },
+    {
+      "source": "Architecture",
+      "target": "Master Project Specification",
+      "source_files": [
+        "planning/02-architecture.md",
+        "Master Project Specification \u2014 AI Agent Platform.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "cites",
+      "why": "connects across different repos/directories; peripheral node `Architecture` unexpectedly reaches hub `Master Project Specification`"
+    },
+    {
+      "source": "Sub-Agent Architecture",
+      "target": "Master Project Specification",
+      "source_files": [
+        "planning/05-sub-agent-architecture.md",
+        "Master Project Specification \u2014 AI Agent Platform.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "cites",
+      "why": "connects across different repos/directories; peripheral node `Sub-Agent Architecture` unexpectedly reaches hub `Master Project Specification`"
+    },
+    {
+      "source": "Tool Architecture",
+      "target": "Master Project Specification",
+      "source_files": [
+        "planning/06-tool-architecture.md",
+        "Master Project Specification \u2014 AI Agent Platform.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "cites",
+      "why": "connects across different repos/directories; peripheral node `Tool Architecture` unexpectedly reaches hub `Master Project Specification`"
+    },
+    {
+      "source": "LLM Gateway",
+      "target": "Master Project Specification",
+      "source_files": [
+        "planning/07-llm-gateway.md",
+        "Master Project Specification \u2014 AI Agent Platform.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "cites",
+      "why": "connects across different repos/directories; peripheral node `LLM Gateway` unexpectedly reaches hub `Master Project Specification`"
+    }
+  ],
+  "tokens": {
+    "input": 14100,
+    "output": 4421
+  }
+}
